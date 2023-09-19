@@ -5,10 +5,6 @@ import (
 	"strings"
 )
 
-func Printfln(template string, args ...any) {
-	fmt.Printf(template+"\n", args...)
-}
-
 func BytesToHexString(array []byte) (result string) {
 	var arrayLen = len(array)
 	if arrayLen == 0 {

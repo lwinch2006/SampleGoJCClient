@@ -1,62 +1,78 @@
 package main
 
 import (
-	"github.com/lwinch2006/SampleGoJCClient/pcsc"
+	"github.com/ebfe/scard"
 	"github.com/lwinch2006/SampleGoJCClient/utils"
+	"github.com/lwinch2006/SampleGoJCClient/utils/customFmt"
 )
 
 func RunApduCommands() {
-	scConnection, err := pcsc.NewSCConnection()
+	scContext, err := scard.EstablishContext()
 	if err != nil {
-		utils.Printfln("Error establishing connection to smart card - %v", err.Error())
+		customFmt.Printfln("Error establishing smart card context - %v", err)
 		return
 	}
 
-	defer scConnection.Disconnect()
+	defer func() {
+		if err = scContext.Release(); err != nil {
+			customFmt.Printfln("Error releasing smart card context - %v", err)
+		}
+	}()
 
-	utils.Printfln("Using smart card reader - %v", scConnection.GetReaderName())
-	utils.Printfln("")
-
-	runApduCommand1(scConnection)
-	runApduCommand2(scConnection)
-	runApduCommand3(scConnection)
-}
-
-func runApduCommand1(scConnection *pcsc.SCConnection) {
-	// APDU command  1
-	apduCommandAsString := "00 A4 04 00 06 D2 76 00 01 24 01"
-	apduResponse, err := scConnection.Send(apduCommandAsString)
+	scReaders, err := scContext.ListReaders()
 	if err != nil {
-		utils.Printfln("APDU command sending error - %v", err.Error())
+		customFmt.Printfln("Error getting smart card readers list - %v", err)
+		return
 	}
 
-	utils.Printfln("APDU command - %v", apduCommandAsString)
-	utils.Printfln("APDU response - %v", apduResponse)
-	utils.Printfln("")
-}
+	scReader := scReaders[0]
+	customFmt.Printfln("Using smart card reader - %v", scReader)
 
-func runApduCommand2(scConnection *pcsc.SCConnection) {
+	scCard, err := scContext.Connect(scReader, scard.ShareShared, scard.ProtocolAny)
+	if err != nil {
+		customFmt.Printfln("Error connecting to smart card - %v", err)
+		return
+	}
+
+	defer func() {
+		if err = scCard.Disconnect(scard.LeaveCard); err != nil {
+			customFmt.Printfln("Error disconnecting smart card - %v", err)
+		}
+	}()
+
+	// APDU Command 1
+	apduCommand := []byte{0x00, 0xA4, 0x04, 0x00, 0x06, 0xD2, 0x76, 0x00, 0x01, 0x24, 0x01}
+	apduResponse, err := scCard.Transmit(apduCommand)
+	if err != nil {
+		customFmt.Printfln("Error sending APDU command - %v", err)
+		return
+	}
+
+	customFmt.Printfln("APDU command - %v", utils.BytesToHexString(apduCommand))
+	customFmt.Printfln("APDU response - %v", utils.BytesToHexString(apduResponse))
+	customFmt.Printfln("")
+
 	// APDU Command 2
-	apduCommandAsString := "00 CA 00 4F 10"
-	apduResponse, err := scConnection.Send(apduCommandAsString)
+	apduCommand = []byte{0x00, 0xCA, 0x00, 0x4F, 0x10}
+	apduResponse, err = scCard.Transmit(apduCommand)
 	if err != nil {
-		utils.Printfln("APDU command sending error - %v", err.Error())
+		customFmt.Printfln("Error sending APDU command - %v", err)
+		return
 	}
 
-	utils.Printfln("APDU command - %v", apduCommandAsString)
-	utils.Printfln("APDU response - %v", apduResponse)
-	utils.Printfln("")
-}
+	customFmt.Printfln("APDU command - %v", utils.BytesToHexString(apduCommand))
+	customFmt.Printfln("APDU response - %v", utils.BytesToHexString(apduResponse))
+	customFmt.Printfln("")
 
-func runApduCommand3(scConnection *pcsc.SCConnection) {
 	// APDU Command 3
-	apduCommandAsString := "00 CA 00 4F 00"
-	apduResponse, err := scConnection.Send(apduCommandAsString)
+	apduCommand = []byte{0x00, 0xCA, 0x00, 0x4F, 0x00}
+	apduResponse, err = scCard.Transmit(apduCommand)
 	if err != nil {
-		utils.Printfln("APDU command sending error - %v", err.Error())
+		customFmt.Printfln("Error sending APDU command - %v", err)
+		return
 	}
 
-	utils.Printfln("APDU command - %v", apduCommandAsString)
-	utils.Printfln("APDU response - %v", apduResponse)
-	utils.Printfln("")
+	customFmt.Printfln("APDU command - %v", utils.BytesToHexString(apduCommand))
+	customFmt.Printfln("APDU response - %v", utils.BytesToHexString(apduResponse))
+	customFmt.Printfln("")
 }
