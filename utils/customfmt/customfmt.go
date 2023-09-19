@@ -1,4 +1,4 @@
-package customFmt
+package customfmt
 
 import "fmt"
 
